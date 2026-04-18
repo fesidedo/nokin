@@ -1,0 +1,14 @@
+# Fill these in with your eBay Developer credentials and rename to `.dev.vars`.
+# `.dev.vars` is gitignored. Wrangler picks it up automatically during
+# `wrangler pages dev` / `npm run dev:full`.
+#
+# For production, set the same keys as Secret environment variables in the
+# Cloudflare Pages dashboard.
+
+EBAY_APP_ID=""
+EBAY_CERT_ID=""
+
+# Optional. Defaults to https://api.ebay.com. Override with
+# https://api.sandbox.ebay.com to hit sandbox. The OAuth flow is identical,
+# only the keys and base URL differ.
+EBAY_BASE_URL="https://api.ebay.com"

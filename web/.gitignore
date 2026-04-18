@@ -1,0 +1,18 @@
+# Build output
+dist/
+.wrangler/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# Local secrets / env (never commit)
+.dev.vars
+
+# Logs and editor junk
+npm-debug.log*
+*.log
+.DS_Store
+
+# Vitest
+coverage/

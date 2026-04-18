@@ -1,0 +1,68 @@
+:root {
+  color-scheme: light dark;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.app__header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.app__subtitle {
+  margin: 0 0 1rem;
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.app__subtitle code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.app__header button {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.app__body {
+  margin-top: 1.5rem;
+}
+
+.app__error {
+  border-left: 3px solid #c0392b;
+  padding: 0.5rem 0.75rem;
+  background: rgba(192, 57, 43, 0.08);
+}
+
+.app__success p {
+  margin: 0 0 0.5rem;
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+pre {
+  background: rgba(127, 127, 127, 0.08);
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  border-radius: 4px;
+}
