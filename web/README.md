@@ -98,6 +98,13 @@ returns something like:
 
 Do this once per environment (preview, production).
 
+The `web/wrangler.jsonc` file tells Cloudflare this is a Pages project with
+Functions (via `pages_build_output_dir`). Without it the new unified
+Workers & Pages dashboard can misidentify the deployment as a
+"Workers + static assets" project and refuse to expose the env-vars panel
+(error: _"Variables cannot be added to a Worker that only has static
+assets"_). **Keep `wrangler.jsonc` committed** &mdash; it is not optional.
+
 1. Push the repo to GitHub if it is not already there.
 2. Cloudflare dashboard -> **Workers & Pages** -> **Create** -> **Pages** -> **Connect to Git** -> select the repo.
 3. Build configuration:
@@ -112,6 +119,17 @@ Do this once per environment (preview, production).
    - `EBAY_BASE_URL` (type: **Environment variable**, optional &mdash; defaults to `https://api.ebay.com` if unset)
 5. Redeploy so the new secrets are picked up by the Functions runtime.
 6. Visit `https://<project>.pages.dev` and confirm the page shows 5 trimmed listings.
+
+### If the dashboard blocks env vars with "Worker only has static assets"
+
+This means the project was deployed as Workers-with-Assets rather than as a
+Pages project. Two-step fix:
+
+1. Ensure `web/wrangler.jsonc` is present and pushed (see above).
+2. Delete the existing project in the Cloudflare dashboard and re-create it
+   via **Workers & Pages -> Create -> Pages -> Connect to Git**. The new
+   deploy, with `wrangler.jsonc` in place, will register as a Pages project
+   with auto-discovered Functions and the env-vars panel will be usable.
 
 The **SPA routing** toggle in Pages settings is *not* needed for this slice
 (only one route). Enable it when we add React Router so client-side deep
