@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260418.1",
-    "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.16",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
