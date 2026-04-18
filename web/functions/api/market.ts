@@ -31,7 +31,8 @@ export const onRequestGet: PagesFunction<FunctionEnv> = async ({ env }) => {
     };
 
     return json(200, body, {
-      "Cache-Control": "no-store",
+      "Cache-Control":
+        "public, s-maxage=3600, max-age=300, stale-while-revalidate=600",
     });
   } catch (err) {
     if (err instanceof EbayApiError) {
