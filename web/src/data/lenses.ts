@@ -67,16 +67,32 @@ export function deriveLens(raw: RawLens): Lens {
 }
 
 /**
- * Map a record to one of the filter-facing lens types. `af-s` lenses with a
- * `g` variant token bump up to the dedicated `af-s-g` bucket (the G body
- * drops the aperture ring, which is the distinction the UI surfaces).
+ * Variant-token markers on an AF-S lens that indicate the aperture ring has
+ * been dropped. The UI groups all of them under the single "AF-S G" filter
+ * label because the meaningful distinction for users is "ring or no ring",
+ * not which specific marker was stamped on the barrel.
+ *
+ * - `g`  -> G-series bodies drop the ring outright.
+ * - `vr` -> AF-S VR lenses also ship without an aperture ring.
+ * - `e`  -> E-series lenses (electromagnetic diaphragm) have no ring either.
+ */
+const AFS_NO_APERTURE_RING_MARKERS: readonly string[] = ["g", "vr", "e"];
+
+/**
+ * Map a record to one of the filter-facing lens types. AF-S lenses whose
+ * variant tokens include any of `AFS_NO_APERTURE_RING_MARKERS` bump up to
+ * the dedicated `af-s-g` bucket (the label the UI surfaces for the
+ * no-aperture-ring AF-S family).
  * Any `type_norm` outside the filter's vocabulary goes to `other` so the
  * lens still appears under "All" but is unreachable from a specific
  * lens-type filter.
  */
 export function deriveLensType(raw: RawLens): Lens["lens_type"] {
   const variants = raw.variant_tokens ?? [];
-  if (raw.type_norm === "af-s" && variants.includes("g")) {
+  if (
+    raw.type_norm === "af-s" &&
+    AFS_NO_APERTURE_RING_MARKERS.some((m) => variants.includes(m))
+  ) {
     return "af-s-g";
   }
 

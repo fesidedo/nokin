@@ -29,9 +29,25 @@ describe("deriveLensType", () => {
     expect(deriveLensType(raw)).toBe("af-s-g");
   });
 
-  it("leaves AF-S without the `g` variant token in the af-s bucket", () => {
-    const raw = makeRaw({ type_norm: "af-s", variant_tokens: [] });
+  it("promotes AF-S with a `vr` variant token to the af-s-g bucket (also ringless)", () => {
+    const raw = makeRaw({ type_norm: "af-s", variant_tokens: ["vr"] });
+    expect(deriveLensType(raw)).toBe("af-s-g");
+  });
+
+  it("promotes AF-S with an `e` variant token to the af-s-g bucket (E-series, no ring)", () => {
+    const raw = makeRaw({ type_norm: "af-s", variant_tokens: ["e"] });
+    expect(deriveLensType(raw)).toBe("af-s-g");
+  });
+
+  it("leaves AF-S without any no-aperture-ring marker in the af-s bucket", () => {
+    const raw = makeRaw({ type_norm: "af-s", variant_tokens: ["ed", "if"] });
     expect(deriveLensType(raw)).toBe("af-s");
+  });
+
+  it("only promotes AF-S (not AF, not Z) when the variant token is present", () => {
+    expect(deriveLensType(makeRaw({ type_norm: "af", variant_tokens: ["g"] }))).toBe("af");
+    expect(deriveLensType(makeRaw({ type_norm: "z", variant_tokens: ["vr"] }))).toBe("z");
+    expect(deriveLensType(makeRaw({ type_norm: "ai-s", variant_tokens: ["e"] }))).toBe("ai-s");
   });
 
   it("maps known type_norm values directly", () => {
