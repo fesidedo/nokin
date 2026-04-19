@@ -17,10 +17,28 @@ export interface ListingSummary {
   itemLocation: { country: string | null };
 }
 
+/**
+ * Response shape for `/api/market?q=<lens display name>`.
+ *
+ * The endpoint runs two Browse searches in parallel and exposes them as
+ * separate buckets so the UI can render them independently (and so a
+ * failure on one branch doesn't take the other down with it).
+ *
+ * - `bin`     -> up to 3 active Buy-It-Now listings (relevance-ordered).
+ * - `auction` -> up to 3 live auctions, server-sorted by soonest end time
+ *   (listings with a null `itemEndDate` pushed to the tail).
+ * - `errors`  -> optional per-bucket error message. Present only when the
+ *   corresponding Browse call failed; the sibling bucket still renders.
+ */
 export interface MarketResponse {
   query: string;
-  active: ListingSummary[];
+  bin: ListingSummary[];
+  auction: ListingSummary[];
   fetched_at: string;
+  errors?: {
+    bin?: string;
+    auction?: string;
+  };
 }
 
 /** Environment bindings provided by Cloudflare Pages. */

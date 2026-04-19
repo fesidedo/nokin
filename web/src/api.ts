@@ -11,8 +11,9 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchMarket(signal?: AbortSignal): Promise<MarketResponse> {
-  const res = await fetch("/api/market", { signal });
+export async function fetchMarket(q: string, signal?: AbortSignal): Promise<MarketResponse> {
+  const params = new URLSearchParams({ q });
+  const res = await fetch(`/api/market?${params.toString()}`, { signal });
   const contentType = res.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
 

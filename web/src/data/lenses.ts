@@ -72,11 +72,14 @@ export function deriveLens(raw: RawLens): Lens {
  * label because the meaningful distinction for users is "ring or no ring",
  * not which specific marker was stamped on the barrel.
  *
- * - `g`  -> G-series bodies drop the ring outright.
- * - `vr` -> AF-S VR lenses also ship without an aperture ring.
- * - `e`  -> E-series lenses (electromagnetic diaphragm) have no ring either.
+ * - `g` -> G-series bodies drop the ring outright.
+ * - `e` -> E-series lenses (electromagnetic diaphragm) have no ring either.
+ *
+ * Note: `vr` is intentionally NOT in this list. At least one AF-S VR lens
+ * ships with an aperture ring (no G/E marker), so VR alone is not a
+ * reliable "ring dropped" signal.
  */
-const AFS_NO_APERTURE_RING_MARKERS: readonly string[] = ["g", "vr", "e"];
+const AFS_NO_APERTURE_RING_MARKERS: readonly string[] = ["g", "e"];
 
 /**
  * Map a record to one of the filter-facing lens types. AF-S lenses whose
@@ -136,9 +139,13 @@ function buildDisplayName(
       : `f/${formatNumber(nums.max_aperture_min)}-${formatNumber(nums.max_aperture_max)}`;
 
   const type = (raw.type_raw || "").trim();
-  const features = (raw.features_raw || "").trim();
+  const variants = (raw.variant_tokens ?? [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => t.toUpperCase())
+    .join(" ");
 
-  return [type, focal, aperture, features].filter(Boolean).join(" ");
+  return [type, focal, aperture, variants].filter(Boolean).join(" ");
 }
 
 function formatNumber(n: number): string {

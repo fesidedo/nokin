@@ -18,10 +18,23 @@ export interface ListingSummary {
   itemLocation: { country: string | null };
 }
 
+/**
+ * Response shape for `/api/market?q=<lens display name>`. Mirrored in
+ * `functions/_lib/types.ts` — keep both in sync.
+ *
+ * Two independent buckets so the modal can render them separately and
+ * survive a partial failure. `errors` is populated only for the branches
+ * that failed.
+ */
 export interface MarketResponse {
   query: string;
-  active: ListingSummary[];
+  bin: ListingSummary[];
+  auction: ListingSummary[];
   fetched_at: string;
+  errors?: {
+    bin?: string;
+    auction?: string;
+  };
 }
 
 export interface ApiErrorBody {

@@ -75,9 +75,22 @@ async function requestNewAppToken(env: ValidatedEnv): Promise<EbayTokenResponse>
 export interface SearchParams {
   q: string;
   limit: number;
+  /**
+   * Optional Browse API `filter` clauses. Each entry is a single filter
+   * expression (e.g. `buyingOptions:{FIXED_PRICE}`) and the fetcher joins
+   * them with commas, which is how Browse expects multi-filter calls.
+   */
+  filter?: string[];
+  /** Optional Browse API `sort` value (e.g. `newlyListed`, `price`, `-price`). */
+  sort?: string;
 }
 
-export async function searchActiveListings(
+/**
+ * Low-level Browse API search. Composes query/filter/sort params and
+ * projects every returned item through `projectListing` so the allow-list
+ * in `doc/ebay/INTEGRATION_POLICY.md` is enforced at the single choke point.
+ */
+async function runBrowseSearch(
   env: ValidatedEnv,
   token: string,
   params: SearchParams,
@@ -85,6 +98,12 @@ export async function searchActiveListings(
   const url = new URL(`${env.baseUrl}/buy/browse/v1/item_summary/search`);
   url.searchParams.set("q", params.q);
   url.searchParams.set("limit", String(params.limit));
+  if (params.filter && params.filter.length > 0) {
+    url.searchParams.set("filter", params.filter.join(","));
+  }
+  if (params.sort) {
+    url.searchParams.set("sort", params.sort);
+  }
 
   const res = await fetch(url.toString(), {
     method: "GET",
@@ -103,6 +122,70 @@ export async function searchActiveListings(
   const body = (await res.json()) as EbayBrowseResponse;
   const items = body.itemSummaries ?? [];
   return items.map(projectListing);
+}
+
+/**
+ * Default relevance-ordered Browse search with no buying-option or
+ * condition filters. Kept for the legacy prototype path; new callers
+ * should use the bucket-specific helpers below.
+ */
+export async function searchActiveListings(
+  env: ValidatedEnv,
+  token: string,
+  params: Pick<SearchParams, "q" | "limit">,
+): Promise<ListingSummary[]> {
+  return runBrowseSearch(env, token, params);
+}
+
+export interface BucketSearchParams {
+  q: string;
+  /**
+   * Over-fetch limit. The endpoint filters junk listings (condition 7000,
+   * titles containing "broken", "for parts", etc.) post-fetch and slices
+   * down to the display count, so we pull more than we show.
+   */
+  limit: number;
+}
+
+/**
+ * Buy-It-Now bucket: FIXED_PRICE only, NEW or USED condition.
+ *
+ * The Browse API default is already FIXED_PRICE, but we set the filter
+ * explicitly to make intent obvious and to keep the two bucket functions
+ * structurally symmetric.
+ */
+export async function searchBinListings(
+  env: ValidatedEnv,
+  token: string,
+  params: BucketSearchParams,
+): Promise<ListingSummary[]> {
+  return runBrowseSearch(env, token, {
+    q: params.q,
+    limit: params.limit,
+    filter: ["buyingOptions:{FIXED_PRICE}", "conditions:{NEW|USED}"],
+  });
+}
+
+/**
+ * Auction bucket: live AUCTION listings, NEW or USED condition.
+ *
+ * Note: we intentionally do NOT pass an `itemEndDate` window filter. eBay
+ * auctions are capped at ~10-day durations by the platform, so any live
+ * auction matching the query is a valid candidate. The caller (the
+ * `/api/market` handler) sorts the returned items by `itemEndDate`
+ * ascending to surface the ones ending soonest. This keeps the net as
+ * wide as possible for lenses where auction listings are rare.
+ */
+export async function searchAuctionsEndingSoon(
+  env: ValidatedEnv,
+  token: string,
+  params: BucketSearchParams,
+): Promise<ListingSummary[]> {
+  return runBrowseSearch(env, token, {
+    q: params.q,
+    limit: params.limit,
+    filter: ["buyingOptions:{AUCTION}", "conditions:{NEW|USED}"],
+  });
 }
 
 /**
