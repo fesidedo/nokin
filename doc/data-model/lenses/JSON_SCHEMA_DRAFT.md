@@ -51,7 +51,9 @@ This is a formal draft schema for the merged `lenses + specs` canonical dataset.
         "parser_version",
         "last_seen_at",
         "is_zoom",
-        "feature_tokens"
+        "feature_tokens",
+        "sensor_format",
+        "has_aperture_ring_estimate"
       ],
       "properties": {
         "stable_id": { "type": "string", "minLength": 1 },
@@ -99,6 +101,13 @@ This is a formal draft schema for the merged `lenses + specs` canonical dataset.
           "type": "array",
           "items": { "type": "string" },
           "uniqueItems": true
+        },
+        "sensor_format": {
+          "type": "string",
+          "enum": ["fx", "dx", "unknown"]
+        },
+        "has_aperture_ring_estimate": {
+          "type": ["boolean", "null"]
         },
 
         "source_pages": {

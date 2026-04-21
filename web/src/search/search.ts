@@ -12,11 +12,19 @@
  */
 
 import Fuse from "fuse.js";
-import type { Lens, LensCategory, LensTypeId } from "../types";
+import type {
+  ApertureRingFilter,
+  Lens,
+  LensCategory,
+  LensTypeId,
+  SensorFormat,
+} from "../types";
 
 export interface SearchFilters {
   category: LensCategory;
   lensType: LensTypeId;
+  sensorFormat: SensorFormat;
+  apertureRing: ApertureRingFilter;
 }
 
 /**
@@ -56,8 +64,22 @@ function applyFilters(
   lenses: readonly Lens[],
 ): readonly Lens[] {
   if (filters.category !== "all" && filters.category !== "lenses") return [];
-  if (filters.lensType === "all") return lenses;
-  return lenses.filter((l) => l.lens_type === filters.lensType);
+  let out = lenses;
+
+  if (filters.lensType !== "all") {
+    out = out.filter((l) => l.lens_type === filters.lensType);
+  }
+
+  if (filters.sensorFormat !== "all") {
+    out = out.filter((l) => l.sensor_format === filters.sensorFormat);
+  }
+
+  if (filters.apertureRing !== "all") {
+    const wantRing = filters.apertureRing === "has_ring";
+    out = out.filter((l) => l.has_aperture_ring_estimate === wantRing);
+  }
+
+  return out;
 }
 
 /**

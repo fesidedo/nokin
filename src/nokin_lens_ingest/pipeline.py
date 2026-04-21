@@ -157,6 +157,99 @@ def token_suffix(variant_tokens: list[str]) -> str | None:
     return "_".join(sorted(set(variant_tokens)))
 
 
+def has_word(text: str | None, needle: str) -> bool:
+    if not text:
+        return False
+    return re.search(rf"\b{re.escape(needle)}\b", text, flags=re.IGNORECASE) is not None
+
+
+def derive_sensor_format(
+    *,
+    type_norm: str,
+    type_raw: str,
+    lens_raw: str,
+    variant_tokens: list[str],
+    feature_tokens: list[str],
+    source_row_refs: list[dict[str, Any]],
+) -> str:
+    """Infer sensor format from strongest explicit signals first.
+
+    Precedence:
+    1) explicit DX marker in canonical type (`z-dx`, etc.)
+    2) explicit DX marker in raw type text (`Z DX`)
+    3) DX marker in lens/features/variant tokens
+    4) DX marker in source section text
+    5) fallback FX (historically true for most Nikon lens families in this dataset)
+    """
+    norm = (type_norm or "").lower()
+    raw = (type_raw or "").lower()
+    lens = (lens_raw or "").lower()
+    variants = {t.lower() for t in variant_tokens}
+    features = {t.lower() for t in feature_tokens}
+
+    if re.search(r"(^|-)dx($|-)", norm):
+        return "dx"
+    if has_word(raw, "dx"):
+        return "dx"
+    if has_word(lens, "dx") or "dx" in variants or "dx" in features:
+        return "dx"
+
+    for ref in source_row_refs:
+        section = ref.get("source_section")
+        if isinstance(section, str) and has_word(section, "dx"):
+            return "dx"
+
+    if not norm:
+        return "unknown"
+    return "fx"
+
+
+def normalize_lens_family(type_norm: str) -> str | None:
+    norm = (type_norm or "").lower()
+    if norm in {"z", "z-dx"}:
+        return "z"
+    if norm == "af-s":
+        return "af-s"
+    if norm == "af":
+        return "af"
+    return None
+
+
+def derive_has_aperture_ring_estimate(
+    *,
+    type_norm: str,
+    sensor_format: str,
+    variant_tokens: list[str],
+) -> bool | None:
+    """Estimate aperture-ring presence using agreed AF/AF-S/Z policy."""
+    norm = (type_norm or "").lower()
+    family = normalize_lens_family(norm)
+    variants = {t.lower() for t in variant_tokens}
+
+    if family == "z":
+        return False
+
+    # AF-S G/E have no ring regardless of sensor split.
+    if family == "af-s" and ("g" in variants or "e" in variants):
+        return False
+
+    if family == "af":
+        if sensor_format == "fx":
+            return True
+        if sensor_format == "dx":
+            return False
+        return None
+
+    if family == "af-s":
+        if sensor_format == "fx":
+            return True
+        if sensor_format == "dx":
+            return False
+        return None
+
+    return None
+
+
 def parse_lens_cell(value: str) -> dict[str, Any]:
     lens_raw = clean_text(value) or ""
     focal_sig, aperture_sig, suffix = parse_focal_and_aperture(lens_raw)
@@ -386,6 +479,19 @@ def build_candidate_record(lenses_row: dict[str, Any] | None, specs_row: dict[st
     merged["source_pages"] = source_pages
     merged["source_urls"] = source_urls
     merged["source_row_refs"] = source_row_refs
+    merged["sensor_format"] = derive_sensor_format(
+        type_norm=merged["type_norm"],
+        type_raw=merged["type_raw"],
+        lens_raw=merged["lens_raw"],
+        variant_tokens=merged["variant_tokens"],
+        feature_tokens=merged["feature_tokens"],
+        source_row_refs=source_row_refs,
+    )
+    merged["has_aperture_ring_estimate"] = derive_has_aperture_ring_estimate(
+        type_norm=merged["type_norm"],
+        sensor_format=merged["sensor_format"],
+        variant_tokens=merged["variant_tokens"],
+    )
     merged["field_sources"] = field_sources
     merged["parser_version"] = PARSER_VERSION
     merged["last_seen_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

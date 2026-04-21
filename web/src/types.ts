@@ -57,8 +57,13 @@ export type LensTypeId =
   | "ai-s"
   | "af"
   | "af-s"
-  | "af-s-g"
   | "z";
+
+/** Sensor coverage filter (`all` = no sensor-size restriction). */
+export type SensorFormat = "all" | "fx" | "dx";
+
+/** Aperture-ring filter (`all` = no ring-state restriction). */
+export type ApertureRingFilter = "all" | "has_ring" | "no_ring";
 
 /**
  * Shape of each record inside `lenses.v1.json`. Typed permissively because the
@@ -80,6 +85,8 @@ export interface RawLens {
   max_aperture_min: number | null;
   max_aperture_max: number | null;
   is_zoom: boolean;
+  sensor_format: "fx" | "dx" | "unknown";
+  has_aperture_ring_estimate: boolean | null;
   features_raw?: string | null;
   [key: string]: unknown;
 }
@@ -104,6 +111,8 @@ export interface Lens {
   max_aperture_min: number;
   max_aperture_max: number;
   is_zoom: boolean;
+  sensor_format: Exclude<SensorFormat, "all"> | "unknown";
+  has_aperture_ring_estimate: boolean | null;
   feature_tokens: readonly string[];
   variant_tokens: readonly string[];
   search_haystack: string;

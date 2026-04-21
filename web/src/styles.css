@@ -131,6 +131,11 @@ pre {
   background: var(--panel-bg-hover);
 }
 
+.segmented__btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 .segmented__btn--on {
   background: var(--panel-bg);
   font-weight: 600;
@@ -166,6 +171,11 @@ pre {
 .app__hint--error {
   color: #c0392b;
   opacity: 1;
+}
+
+.app__filter-note {
+  font-size: 0.78rem;
+  opacity: 0.7;
 }
 
 .results-section {

@@ -12,7 +12,6 @@ const OPTIONS: ReadonlyArray<{ id: LensTypeId; label: string }> = [
   { id: "ai-s", label: "AI-S" },
   { id: "af", label: "AF" },
   { id: "af-s", label: "AF-S" },
-  { id: "af-s-g", label: "AF-S G" },
   { id: "z", label: "Z" },
 ];
 
