@@ -7,20 +7,27 @@ unrelated to the Pages build.
 
 See [../doc/architecture/SYSTEM_ARCHITECTURE.md](../doc/architecture/SYSTEM_ARCHITECTURE.md)
 for the full component picture and
+[../doc/architecture/MARKET_DATA.md](../doc/architecture/MARKET_DATA.md) for
+the `/api/market` contract and bucket behavior,
+[../doc/architecture/CACHING.md](../doc/architecture/CACHING.md) for cache
+policy, and
 [../doc/ebay/INTEGRATION_POLICY.md](../doc/ebay/INTEGRATION_POLICY.md) for the
 eBay field allow-list this slice enforces.
 
-## What this prototype does
+## What this app does (current)
 
-1. Browser loads the SPA (a bare page with a Refresh button and a `<pre>` dump).
-2. On mount the SPA fetches `/api/market`.
-3. The Pages Function at `functions/api/market.ts`:
+1. Browser loads the SPA and lens dataset.
+2. User opens a lens detail modal.
+3. The modal fetches `/api/market?q=<lens.display_name>`.
+4. The Pages Function at `functions/api/market.ts`:
    - Reads `EBAY_APP_ID`, `EBAY_CERT_ID`, and optional `EBAY_BASE_URL` from the env.
    - Gets an OAuth application access token (cached in the Cloudflare Cache API).
-   - Calls `GET /buy/browse/v1/item_summary/search?q=nikon&limit=5` with `X-EBAY-C-MARKETPLACE-ID: EBAY_US`.
-   - Projects each item to an allow-listed subset (see `functions/_lib/ebay.ts:projectListing`).
-   - Returns `{ query, active, fetched_at }` as JSON.
-4. The SPA renders the JSON.
+   - Calls eBay Browse API twice in parallel:
+     - Buy It Now bucket: `buyingOptions:{FIXED_PRICE},conditions:{NEW|USED}`
+     - Auctions bucket: `buyingOptions:{AUCTION},conditions:{NEW|USED}`
+   - Over-fetches (`limit=25`), filters junk listings, then returns up to 3 per bucket.
+   - Returns `{ query, bin, auction, fetched_at, errors? }` as JSON.
+5. The modal renders both buckets with independent loading/empty/error states.
 
 ## Requirements
 
@@ -60,13 +67,13 @@ npm install
 
 ### Expected output
 
-With valid production credentials, `GET http://localhost:8788/api/market`
+With valid production credentials, `GET http://localhost:8788/api/market?q=nikon%20af-s%2070-200mm%20f%2F2.8%20g`
 returns something like:
 
 ```json
 {
-  "query": "nikon",
-  "active": [
+  "query": "nikon af-s 70-200mm f/2.8 g",
+  "bin": [
     {
       "itemId": "v1|123456|0",
       "title": "Nikon D750 Digital SLR Camera Body",
@@ -81,6 +88,21 @@ returns something like:
       "itemLocation": { "country": "US" }
     }
   ],
+  "auction": [
+    {
+      "itemId": "v1|999999|0",
+      "title": "Nikon AF-S 70-200mm f/2.8 G ED VR (Auction)",
+      "price": { "value": "410.00", "currency": "USD" },
+      "condition": "USED_EXCELLENT",
+      "conditionId": "3000",
+      "itemWebUrl": "https://www.ebay.com/itm/999999",
+      "imageUrl": "https://i.ebayimg.com/.../s-l300.jpg",
+      "thumbnailUrls": ["..."],
+      "itemEndDate": "2026-04-20T18:00:00.000Z",
+      "buyingOptions": ["AUCTION"],
+      "itemLocation": { "country": "US" }
+    }
+  ],
   "fetched_at": "2026-04-18T18:00:00.000Z"
 }
 ```
@@ -89,9 +111,11 @@ returns something like:
 
 | HTTP | Body | Meaning |
 |---|---|---|
+| `400` | `{ "error": "missing_query" }` | `q` parameter was missing or empty. |
 | `500` | `{ "error": "missing_env", "missing": [...] }` | One or more env vars are unset. Check `.dev.vars` (local) or Pages secrets (prod). |
 | `502` | `{ "error": "oauth_failed", "status": ..., "ebay_message": "..." }` | OAuth token fetch failed. Usually bad credentials or eBay outage. |
 | `502` | `{ "error": "browse_failed", "status": ..., "ebay_message": "..." }` | Token worked but Browse call failed. Could be scope, marketplace header, or rate-limit issues. |
+| `200` | `{ ..., "errors": { "bin": "...", "auction": "..." } }` | Partial success: one bucket failed but the other still returned. |
 | `500` | `{ "error": "internal", "message": "..." }` | Unexpected throw. Check Wrangler logs. |
 
 ## One-time Cloudflare Pages setup
@@ -118,7 +142,7 @@ assets"_). **Keep `wrangler.jsonc` committed** &mdash; it is not optional.
    - `EBAY_CERT_ID` (type: **Secret**)
    - `EBAY_BASE_URL` (type: **Environment variable**, optional &mdash; defaults to `https://api.ebay.com` if unset)
 5. Redeploy so the new secrets are picked up by the Functions runtime.
-6. Visit `https://<project>.pages.dev` and confirm the page shows 5 trimmed listings.
+6. Visit `https://<project>.pages.dev`, open a lens detail modal, and confirm both market buckets load.
 
 ### If the dashboard blocks env vars with "Worker only has static assets"
 
@@ -138,7 +162,8 @@ links do not 404.
 ## What to look for when validating the deploy
 
 - Page renders without CSS or JS errors.
-- JSON dump shows exactly 5 listings.
+- Modal market section shows up to 3 Buy It Now items and up to 3 auction items.
+- Auction items are ordered by soonest `itemEndDate` (null end dates last).
 - No listing contains `seller`, `username`, `userId`, `eiasToken`, or any
   other banned field. `JSON.stringify(response).includes("seller")` in the
   browser console should be `false`.
@@ -159,7 +184,7 @@ web/
   .dev.vars.example      # template; copy to .dev.vars (gitignored)
   src/
     main.tsx             # React root
-    App.tsx              # single component; fetch + render
+    App.tsx              # lens search + detail modal
     api.ts               # typed /api/market fetch wrapper
     types.ts             # client-side contract types
     styles.css
@@ -167,8 +192,10 @@ web/
     api/
       market.ts          # GET /api/market handler
     _lib/
-      ebay.ts            # OAuth + Browse + projectListing (allow-list)
+      ebay.ts            # OAuth + Browse bucket helpers + projectListing
       ebay.test.ts       # projection unit test
+      filters.ts         # junk-listing denylist
+      filters.test.ts    # junk filter unit tests
       cache.ts           # Cache API wrapper for OAuth token
       env.ts             # env validation
       types.ts           # server-side contract types (mirror of src/types.ts)
