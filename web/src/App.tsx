@@ -10,12 +10,20 @@ import { SensorFormatFilter } from "./components/SensorFormatFilter";
 import type { ViewMode } from "./components/ViewModeToggle";
 import { ViewModeToggle } from "./components/ViewModeToggle";
 import { getLenses } from "./data/lenses";
+import {
+  ALLOWED_MARKETPLACES,
+  DEFAULT_MARKETPLACE,
+  marketplaceLabel,
+  readMarketplacePreference,
+  writeMarketplacePreference,
+} from "./marketplacePreference";
 import { isBrowseMode, searchLenses } from "./search/search";
 import type {
   ApertureRingFilter as ApertureRingFilterValue,
   Lens,
   LensCategory,
   LensTypeId,
+  MarketplaceId,
   SensorFormat,
 } from "./types";
 
@@ -152,8 +160,16 @@ type LoadState =
   | { status: "error"; message: string };
 
 export function App() {
+  const storedMarketplace = readMarketplacePreference();
   const [state, dispatch] = useReducer(reducer, initialState);
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
+  const [marketplace, setMarketplace] = useState<MarketplaceId>(
+    storedMarketplace ?? DEFAULT_MARKETPLACE,
+  );
+  const [showMarketplacePrompt, setShowMarketplacePrompt] = useState(
+    storedMarketplace === null,
+  );
+  const [showMarketplacePicker, setShowMarketplacePicker] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,8 +236,63 @@ export function App() {
     return load.lenses.find((l) => l.stable_id === state.selectedStableId) ?? null;
   }, [state.selectedStableId, load]);
 
+  function applyMarketplace(next: MarketplaceId): void {
+    setMarketplace(next);
+    writeMarketplacePreference(next);
+    setShowMarketplacePrompt(false);
+    setShowMarketplacePicker(false);
+  }
+
   return (
     <main className={`app app--${phase}`}>
+      <div className="app__market-controls">
+        <span className="app__market-label">Market: {marketplaceLabel(marketplace)}</span>
+        <button
+          type="button"
+          className="app__market-settings-btn"
+          onClick={() => setShowMarketplacePicker((v) => !v)}
+          aria-label="Open marketplace settings"
+        >
+          ⚙ Settings
+        </button>
+      </div>
+
+      {(showMarketplacePrompt || showMarketplacePicker) && (
+        <div className="app__market-panel" role="region" aria-label="Marketplace preference">
+          <p className="app__market-panel-title">
+            Choose the eBay market used for pricing and listing results.
+          </p>
+          <div className="segmented" role="radiogroup" aria-label="Marketplace picker">
+            {ALLOWED_MARKETPLACES.map((id) => {
+              const selected = marketplace === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={`segmented__btn${selected ? " segmented__btn--on" : ""}`}
+                  onClick={() => applyMarketplace(id)}
+                >
+                  {marketplaceLabel(id)}
+                </button>
+              );
+            })}
+          </div>
+          {showMarketplacePrompt && (
+            <div className="app__market-panel-actions">
+              <button
+                type="button"
+                className="app__market-link-btn"
+                onClick={() => applyMarketplace(DEFAULT_MARKETPLACE)}
+              >
+                Keep default (eBay US)
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="app__control-bar">
         <CategoryFilter
           value={state.category}
@@ -305,6 +376,7 @@ export function App() {
 
       <LensDetailModal
         lens={selectedLens}
+        marketplace={marketplace}
         onClose={() => dispatch({ type: "deselect" })}
       />
     </main>

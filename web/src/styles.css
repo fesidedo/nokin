@@ -50,6 +50,57 @@ pre {
   justify-content: flex-start;
 }
 
+.app__market-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  font-size: 0.85rem;
+}
+
+.app__market-label {
+  opacity: 0.8;
+}
+
+.app__market-settings-btn,
+.app__market-link-btn {
+  appearance: none;
+  border: var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+}
+
+.app__market-settings-btn:hover,
+.app__market-link-btn:hover {
+  background: var(--panel-bg-hover);
+}
+
+.app__market-panel {
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+  background: var(--panel-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.app__market-panel-title {
+  margin: 0;
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+.app__market-panel-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .app__control-bar {
   display: flex;
   flex-wrap: wrap;
@@ -369,6 +420,12 @@ pre {
   font-family: inherit;
   font-weight: 500;
   opacity: 0.95;
+}
+
+.market-section__market {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
 }
 
 .market-bucket {

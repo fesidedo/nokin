@@ -3,15 +3,11 @@ import type { ValidatedEnv } from "./env";
 import type {
   EbayBrowseResponse,
   EbayItemSummary,
+  MarketplaceId,
   EbayTokenResponse,
   ListingSummary,
 } from "./types";
-
-/**
- * eBay marketplace used for Browse API calls. Hardcoded for the prototype;
- * surfaced as a constant so future callers can parameterize later.
- */
-export const MARKETPLACE_ID = "EBAY_US";
+import { DEFAULT_MARKETPLACE } from "./marketplace";
 
 /** Safety margin subtracted from `expires_in` when caching the token. */
 const TOKEN_REFRESH_MARGIN_SECONDS = 60;
@@ -75,6 +71,7 @@ async function requestNewAppToken(env: ValidatedEnv): Promise<EbayTokenResponse>
 export interface SearchParams {
   q: string;
   limit: number;
+  marketplaceId?: MarketplaceId;
   /**
    * Optional Browse API `filter` clauses. Each entry is a single filter
    * expression (e.g. `buyingOptions:{FIXED_PRICE}`) and the fetcher joins
@@ -109,7 +106,7 @@ async function runBrowseSearch(
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
-      "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE_ID,
+      "X-EBAY-C-MARKETPLACE-ID": params.marketplaceId ?? DEFAULT_MARKETPLACE,
       Accept: "application/json",
     },
   });
@@ -139,6 +136,7 @@ export async function searchActiveListings(
 
 export interface BucketSearchParams {
   q: string;
+  marketplaceId: MarketplaceId;
   /**
    * Over-fetch limit. The endpoint filters junk listings (condition 7000,
    * titles containing "broken", "for parts", etc.) post-fetch and slices
@@ -162,6 +160,7 @@ export async function searchBinListings(
   return runBrowseSearch(env, token, {
     q: params.q,
     limit: params.limit,
+    marketplaceId: params.marketplaceId,
     filter: ["buyingOptions:{FIXED_PRICE}", "conditions:{NEW|USED}"],
   });
 }
@@ -184,6 +183,7 @@ export async function searchAuctionsEndingSoon(
   return runBrowseSearch(env, token, {
     q: params.q,
     limit: params.limit,
+    marketplaceId: params.marketplaceId,
     filter: ["buyingOptions:{AUCTION}", "conditions:{NEW|USED}"],
   });
 }

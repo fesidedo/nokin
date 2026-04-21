@@ -17,6 +17,16 @@ export interface ListingSummary {
   itemLocation: { country: string | null };
 }
 
+export type MarketplaceId =
+  | "EBAY_US"
+  | "EBAY_GB"
+  | "EBAY_DE"
+  | "EBAY_FR"
+  | "EBAY_IT"
+  | "EBAY_ES"
+  | "EBAY_CA"
+  | "EBAY_AU";
+
 /**
  * Response shape for `/api/market?q=<lens display name>`.
  *
@@ -32,6 +42,7 @@ export interface ListingSummary {
  */
 export interface MarketResponse {
   query: string;
+  marketplace_used: MarketplaceId;
   bin: ListingSummary[];
   auction: ListingSummary[];
   fetched_at: string;

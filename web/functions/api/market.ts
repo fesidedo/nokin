@@ -6,6 +6,7 @@ import {
 } from "../_lib/ebay";
 import { validateEnv } from "../_lib/env";
 import { isJunkListing } from "../_lib/filters";
+import { parseMarketplace } from "../_lib/marketplace";
 import type { FunctionEnv, ListingSummary, MarketResponse } from "../_lib/types";
 
 /**
@@ -33,6 +34,7 @@ export const onRequestGet: PagesFunction<FunctionEnv> = async ({ env, request })
 
   const url = new URL(request.url);
   const q = (url.searchParams.get("q") ?? "").trim();
+  const marketplace = parseMarketplace(url.searchParams.get("marketplace"));
   if (!q) {
     return json(400, { error: "missing_query" });
   }
@@ -41,8 +43,16 @@ export const onRequestGet: PagesFunction<FunctionEnv> = async ({ env, request })
     const token = await getAppToken(validation.env);
 
     const [binResult, auctionResult] = await Promise.allSettled([
-      searchBinListings(validation.env, token, { q, limit: PREFETCH_LIMIT }),
-      searchAuctionsEndingSoon(validation.env, token, { q, limit: PREFETCH_LIMIT }),
+      searchBinListings(validation.env, token, {
+        q,
+        limit: PREFETCH_LIMIT,
+        marketplaceId: marketplace,
+      }),
+      searchAuctionsEndingSoon(validation.env, token, {
+        q,
+        limit: PREFETCH_LIMIT,
+        marketplaceId: marketplace,
+      }),
     ]);
 
     const { listings: bin, error: binError } = finalizeBucket(binResult, "bin");
@@ -57,6 +67,7 @@ export const onRequestGet: PagesFunction<FunctionEnv> = async ({ env, request })
 
     const body: MarketResponse = {
       query: q,
+      marketplace_used: marketplace,
       bin,
       auction,
       fetched_at: new Date().toISOString(),

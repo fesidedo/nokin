@@ -1,4 +1,4 @@
-import type { ApiErrorBody, MarketResponse } from "./types";
+import type { ApiErrorBody, MarketResponse, MarketplaceId } from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -11,8 +11,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchMarket(q: string, signal?: AbortSignal): Promise<MarketResponse> {
-  const params = new URLSearchParams({ q });
+export async function fetchMarket(
+  q: string,
+  marketplace: MarketplaceId,
+  signal?: AbortSignal,
+): Promise<MarketResponse> {
+  const params = new URLSearchParams({ q, marketplace });
   const res = await fetch(`/api/market?${params.toString()}`, { signal });
   const contentType = res.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, fetchMarket } from "../api";
-import type { Lens, ListingSummary, MarketResponse, RawLens } from "../types";
+import { marketplaceLabel } from "../marketplacePreference";
+import type { Lens, ListingSummary, MarketResponse, MarketplaceId, RawLens } from "../types";
 
 export interface LensDetailModalProps {
   lens: Lens | null;
+  marketplace: MarketplaceId;
   onClose: () => void;
 }
 
@@ -13,7 +15,7 @@ export interface LensDetailModalProps {
  * inside the dialog while it is open so keyboard users can navigate within
  * the panel.
  */
-export function LensDetailModal({ lens, onClose }: LensDetailModalProps) {
+export function LensDetailModal({ lens, marketplace, onClose }: LensDetailModalProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -61,7 +63,7 @@ export function LensDetailModal({ lens, onClose }: LensDetailModalProps) {
 
         <section className="modal-panel__body">
           <SpecsBlock lens={lens} />
-          <MarketSection lens={lens} />
+          <MarketSection lens={lens} marketplace={marketplace} />
         </section>
       </div>
     </div>
@@ -103,7 +105,7 @@ interface MarketState {
  * or lens switch so the user doesn't see stale data for the previous
  * lens flash in after a quick click-through.
  */
-function useMarketData(query: string): MarketState {
+function useMarketData(query: string, marketplace: MarketplaceId): MarketState {
   const [state, setState] = useState<MarketState>({
     status: "loading",
     data: null,
@@ -116,7 +118,7 @@ function useMarketData(query: string): MarketState {
 
     setState({ status: "loading", data: null, error: null });
 
-    fetchMarket(query, controller.signal)
+    fetchMarket(query, marketplace, controller.signal)
       .then((data) => {
         if (cancelled) return;
         setState({ status: "ok", data, error: null });
@@ -137,13 +139,13 @@ function useMarketData(query: string): MarketState {
       cancelled = true;
       controller.abort();
     };
-  }, [query]);
+  }, [query, marketplace]);
 
   return state;
 }
 
-function MarketSection({ lens }: { lens: Lens }) {
-  const market = useMarketData(lens.display_name);
+function MarketSection({ lens, marketplace }: { lens: Lens; marketplace: MarketplaceId }) {
+  const market = useMarketData(lens.display_name, marketplace);
 
   return (
     <div className="market-section">
@@ -151,6 +153,7 @@ function MarketSection({ lens }: { lens: Lens }) {
       <p className="market-section__query">
         Searched eBay for <code>{lens.display_name}</code>
       </p>
+      <p className="market-section__market">Marketplace: {marketplaceLabel(marketplace)}</p>
 
       <MarketBucket
         title="Buy It Now"
