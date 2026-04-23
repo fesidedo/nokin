@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, fetchMarket } from "../api";
-import { marketplaceLabel } from "../marketplacePreference";
+import { marketplaceHost, marketplaceLabel } from "../marketplacePreference";
 import type { Lens, ListingSummary, MarketResponse, MarketplaceId, RawLens } from "../types";
 
 export interface LensDetailModalProps {
@@ -146,12 +146,16 @@ function useMarketData(query: string, marketplace: MarketplaceId): MarketState {
 
 function MarketSection({ lens, marketplace }: { lens: Lens; marketplace: MarketplaceId }) {
   const market = useMarketData(lens.display_name, marketplace);
+  const searchUrl = buildEbaySearchUrl(lens.display_name, marketplace);
 
   return (
     <div className="market-section">
       <h3 className="market-section__title">Market data</h3>
       <p className="market-section__query">
-        Searched eBay for <code>{lens.display_name}</code>
+        Searched eBay for{" "}
+        <a href={searchUrl} target="_blank" rel="noopener noreferrer">
+          {lens.display_name}
+        </a>
       </p>
       <p className="market-section__market">Marketplace: {marketplaceLabel(marketplace)}</p>
 
@@ -175,6 +179,16 @@ function MarketSection({ lens, marketplace }: { lens: Lens; marketplace: Marketp
       />
     </div>
   );
+}
+
+function buildEbaySearchUrl(query: string, marketplace: MarketplaceId): string {
+  const u = new URL(`https://${marketplaceHost(marketplace)}/sch/i.html`);
+  u.searchParams.set("_nkw", query);
+  u.searchParams.set("_sacat", "0");
+  u.searchParams.set("_ipg", "240");
+  // Keep sort stable when opening a new tab from the modal.
+  u.searchParams.set("_sop", "12");
+  return u.toString();
 }
 
 interface MarketBucketProps {

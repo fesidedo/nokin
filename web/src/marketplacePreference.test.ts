@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_MARKETPLACE,
   MARKETPLACE_STORAGE_KEY,
+  marketplaceHost,
   marketplaceLabel,
   parseMarketplaceId,
   readMarketplacePreference,
@@ -56,5 +57,12 @@ describe("marketplacePreference", () => {
   it("exposes display labels for UI", () => {
     expect(marketplaceLabel(DEFAULT_MARKETPLACE)).toBe("eBay US");
     expect(marketplaceLabel("EBAY_GB")).toBe("eBay UK");
+  });
+
+  it("maps marketplace IDs to the expected eBay hosts", () => {
+    expect(marketplaceHost("EBAY_US")).toBe("www.ebay.com");
+    expect(marketplaceHost("EBAY_GB")).toBe("www.ebay.co.uk");
+    expect(marketplaceHost("EBAY_DE")).toBe("www.ebay.de");
+    expect(marketplaceHost("EBAY_CA")).toBe("www.ebay.ca");
   });
 });

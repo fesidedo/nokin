@@ -25,8 +25,23 @@ const MARKETPLACE_LABELS: Record<MarketplaceId, string> = {
   EBAY_AU: "eBay Australia",
 };
 
+const MARKETPLACE_HOSTS: Record<MarketplaceId, string> = {
+  EBAY_US: "www.ebay.com",
+  EBAY_GB: "www.ebay.co.uk",
+  EBAY_DE: "www.ebay.de",
+  EBAY_FR: "www.ebay.fr",
+  EBAY_IT: "www.ebay.it",
+  EBAY_ES: "www.ebay.es",
+  EBAY_CA: "www.ebay.ca",
+  EBAY_AU: "www.ebay.com.au",
+};
+
 export function marketplaceLabel(id: MarketplaceId): string {
   return MARKETPLACE_LABELS[id];
+}
+
+export function marketplaceHost(id: MarketplaceId): string {
+  return MARKETPLACE_HOSTS[id];
 }
 
 export function isMarketplaceId(value: string): value is MarketplaceId {
